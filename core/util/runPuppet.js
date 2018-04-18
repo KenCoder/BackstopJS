@@ -22,6 +22,8 @@ const DOCUMENT_SELECTOR = 'document';
 const NOCLIP_SELECTOR = 'body:noclip';
 const VIEWPORT_SELECTOR = 'viewport';
 
+let nextLogId = 1;
+
 module.exports = function (args) {
   const scenario = args.scenario;
   const viewport = args.viewport;
@@ -37,10 +39,10 @@ module.exports = function (args) {
   config._outputFileFormatSuffix = '.' + (config.outputFormat && config.outputFormat.match(/jpg|jpeg/) || 'png');
   config._configId = config.id || engineTools.genHash(config.backstopConfigFileName);
 
-  return processScenarioView(scenario, variantOrScenarioLabelSafe, scenarioLabelSafe, viewport, config, assignedPort);
+  return processScenarioView(scenario, variantOrScenarioLabelSafe, scenarioLabelSafe, viewport, config);
 };
 
-async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenarioLabelSafe, viewport, config, assignedPort) {
+async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenarioLabelSafe, viewport, config) {
   if (!config.paths) {
     config.paths = {};
   }
@@ -66,6 +68,7 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
 
   const browser = await puppeteer.launch(puppeteerArgs);
   const page = await browser.newPage();
+  const logId = nextLogId++;
 
   page.setViewport({width: VP_W, height: VP_H});
   page.setDefaultNavigationTimeout(engineTools.getEngineOption(config, 'waitTimeout', TEST_TIMEOUT));
@@ -87,7 +90,7 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
   page.on('console', msg => {
     for (let i = 0; i < msg.args().length; ++i) {
       const line = msg.args()[i];
-      console.log(`${assignedPort}: ${line}`);
+      console.log(`${logId}: ${line}`);
       if (readyEvent && new RegExp(readyEvent).test(line)) {
         readyResolve();
       }
@@ -121,7 +124,7 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
     if (isReference && scenario.referenceUrl) {
       url = scenario.referenceUrl;
     }
-    console.log(`${assignedPort}: Navigating to ${url}`);
+    console.log(`${logId}: Navigating to ${url}`);
 
     await page.goto(translateUrl(url));
 
@@ -149,7 +152,7 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
     if (scenario.delay > 0) {
       await page.waitFor(scenario.delay);
     }
-    console.log(`${assignedPort}: Navigation complete`);
+    console.log(`${logId}: Navigation complete`);
 
     //--- REMOVE SELECTORS ---
     if (scenario.hasOwnProperty('removeSelectors')) {
