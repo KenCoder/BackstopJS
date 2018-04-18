@@ -76,10 +76,11 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
 
   // --- set up console output and ready event ---
   const readyEvent = scenario.readyEvent || config.readyEvent;
-  let readyResolve, readyPromise;
+  let readyResolve, readyPromise, readyReject;
   if (readyEvent) {
-    readyPromise = new Promise(resolve => {
+    readyPromise = new Promise((resolve, reject) => {
       readyResolve = resolve;
+      readyReject = reject;
     });
   }
 
@@ -127,8 +128,11 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
     //  --- WAIT FOR READY EVENT ---
     if (readyEvent) {
       await page.evaluate(`window._readyEvent = '${readyEvent}'`);
+      const timerId = setTimeout(() => readyReject(new Error(`Timeout waiting for readyEvent '${readyEvent} in ${url}`)))
 
       await readyPromise;
+
+      clearTimeout(timerId);
 
       await page.evaluate(_ => console.info('readyEvent ok'));
     }
