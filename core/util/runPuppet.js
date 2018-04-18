@@ -133,7 +133,8 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
     //  --- WAIT FOR READY EVENT ---
     if (readyEvent) {
       await page.evaluate(`window._readyEvent = '${readyEvent}'`);
-      const timerId = setTimeout(() => readyReject(new Error(`Timeout waiting for readyEvent '${readyEvent} in ${url}`)))
+      const timeout = config.readyTimeout || 30000;
+      const timerId = setTimeout(() => readyReject(new Error(`Timeout waiting for readyEvent '${readyEvent} in ${url}`)), timeout)
 
       await readyPromise;
 
