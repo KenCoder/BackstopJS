@@ -37,10 +37,10 @@ module.exports = function (args) {
   config._outputFileFormatSuffix = '.' + (config.outputFormat && config.outputFormat.match(/jpg|jpeg/) || 'png');
   config._configId = config.id || engineTools.genHash(config.backstopConfigFileName);
 
-  return processScenarioView(scenario, variantOrScenarioLabelSafe, scenarioLabelSafe, viewport, config);
+  return processScenarioView(scenario, variantOrScenarioLabelSafe, scenarioLabelSafe, viewport, config, assignedPort);
 };
 
-async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenarioLabelSafe, viewport, config) {
+async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenarioLabelSafe, viewport, config, assignedPort) {
   if (!config.paths) {
     config.paths = {};
   }
@@ -87,7 +87,7 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
   page.on('console', msg => {
     for (let i = 0; i < msg.args().length; ++i) {
       const line = msg.args()[i];
-      console.log(`Browser Console Log ${i}: ${line}`);
+      console.log(`${assignedPort}: ${line}`);
       if (readyEvent && new RegExp(readyEvent).test(line)) {
         readyResolve();
       }
@@ -121,6 +121,8 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
     if (isReference && scenario.referenceUrl) {
       url = scenario.referenceUrl;
     }
+    console.log(`${assignedPort}: Navigating to ${url}`);
+
     await page.goto(translateUrl(url));
 
     await injectBackstopTools(page);
@@ -147,6 +149,7 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
     if (scenario.delay > 0) {
       await page.waitFor(scenario.delay);
     }
+    console.log(`${assignedPort}: Navigation complete`);
 
     //--- REMOVE SELECTORS ---
     if (scenario.hasOwnProperty('removeSelectors')) {
