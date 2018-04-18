@@ -263,7 +263,7 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
   }
 
   if (error) {
-    const testPair = engineTools.generateTestPair(config, scenario, viewport, variantOrScenarioLabelSafe, scenarioLabelSafe, 0, `${scenario.selectors.join('__')}`);
+    const testPair = engineTools.generateTestPair(config, scenario, viewport, variantOrScenarioLabelSafe, scenarioLabelSafe, 0, `${(scenario.selectors || []).join('__')}`);
     const filePath = config.isReference ? testPair.reference : testPair.test;
     testPair.engineErrorMsg = error.message;
 
