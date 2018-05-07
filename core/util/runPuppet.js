@@ -7,8 +7,6 @@ const ensureDirectoryPath = require('./ensureDirectoryPath');
 const injectBackstopTools = require('../../capture/backstopTools.js');
 const engineTools = require('./engineTools');
 
-const BackstopException = require('../util/BackstopException.js');
-
 const MIN_CHROME_VERSION = 62;
 const TEST_TIMEOUT = 60000;
 const DEFAULT_FILENAME_TEMPLATE = '{configId}_{scenarioLabel}_{selectorIndex}_{selectorLabel}_{viewportIndex}_{viewportLabel}';
@@ -28,8 +26,6 @@ module.exports = function (args) {
   const scenario = args.scenario;
   const viewport = args.viewport;
   const config = args.config;
-  const runId = args.id;
-  const assignedPort = args.assignedPort;
   const scenarioLabelSafe = engineTools.makeSafe(scenario.label);
   const variantOrScenarioLabelSafe = scenario._parent ? engineTools.makeSafe(scenario._parent.label) : scenarioLabelSafe;
 
@@ -61,7 +57,7 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
     {},
     {
       ignoreHTTPSErrors: true,
-      headless: !!!config.debugWindow
+      headless: !config.debugWindow
     },
     config.engineOptions
   );
@@ -155,24 +151,21 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
     }
     console.log(`${logId}: Navigation complete`);
 
-    //--- REMOVE SELECTORS ---
+    // --- REMOVE SELECTORS ---
     if (scenario.hasOwnProperty('removeSelectors')) {
       const removeSelectors = async () => {
         return Promise.all(
           scenario.removeSelectors.map(async (selector) => {
             await page
-              .evaluate(`window._backstopSelector = '${selector}'`);
-
-            await page
-              .evaluate(() => {
-                document.querySelectorAll(window._backstopSelector).forEach(s => {
+              .evaluate((sel) => {
+                document.querySelectorAll(sel).forEach(s => {
                   s.style.display = 'none';
                   s.classList.add('__86d');
                 });
-              });
+              }, selector);
           })
         );
-      }
+      };
 
       await removeSelectors();
     }
@@ -197,14 +190,11 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
         return Promise.all(
           scenario.hideSelectors.map(async (selector) => {
             await page
-              .evaluate(`window._backstopSelector = '${selector}'`)
-
-            await page
-              .evaluate(() => {
-                document.querySelectorAll(window._backstopSelector).forEach(s => {
+              .evaluate((sel) => {
+                document.querySelectorAll(sel).forEach(s => {
                   s.style.visibility = 'hidden';
                 });
-              });
+              }, selector);
           })
         );
       };
@@ -409,8 +399,8 @@ async function captureScreenshot (page, browser, selector, selectorMap, config, 
           }
         })
       );
-    }
-    await selectorsShot()
+    };
+    await selectorsShot();
   }
 }
 
