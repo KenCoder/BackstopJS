@@ -7,8 +7,6 @@ const ensureDirectoryPath = require('./ensureDirectoryPath');
 const injectBackstopTools = require('../../capture/backstopTools.js');
 const engineTools = require('./engineTools');
 
-const BackstopException = require('../util/BackstopException.js');
-
 const MIN_CHROME_VERSION = 62;
 const TEST_TIMEOUT = 60000;
 const DEFAULT_FILENAME_TEMPLATE = '{configId}_{scenarioLabel}_{selectorIndex}_{selectorLabel}_{viewportIndex}_{viewportLabel}';
@@ -16,7 +14,7 @@ const DEFAULT_BITMAPS_TEST_DIR = 'bitmaps_test';
 const DEFAULT_BITMAPS_REFERENCE_DIR = 'bitmaps_reference';
 const SELECTOR_NOT_FOUND_PATH = '/capture/resources/notFound.png';
 const HIDDEN_SELECTOR_PATH = '/capture/resources/notVisible.png';
-const ERROR_SELECTOR_PATH = '/capture/resources/unexpectedError.png';
+const ERROR_SELECTOR_PATH = '/capture/resources/unexpectedErrorSm.png';
 const BODY_SELECTOR = 'body';
 const DOCUMENT_SELECTOR = 'document';
 const NOCLIP_SELECTOR = 'body:noclip';
@@ -26,8 +24,6 @@ module.exports = function (args) {
   const scenario = args.scenario;
   const viewport = args.viewport;
   const config = args.config;
-  const runId = args.id;
-  const assignedPort = args.assignedPort;
   const scenarioLabelSafe = engineTools.makeSafe(scenario.label);
   const variantOrScenarioLabelSafe = scenario._parent ? engineTools.makeSafe(scenario._parent.label) : scenarioLabelSafe;
 
@@ -59,7 +55,7 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
     {},
     {
       ignoreHTTPSErrors: true,
-      headless: !!!config.debugWindow
+      headless: !config.debugWindow
     },
     config.engineOptions
   );
@@ -144,24 +140,21 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
       await page.waitFor(scenario.delay);
     }
 
-    //--- REMOVE SELECTORS ---
+    // --- REMOVE SELECTORS ---
     if (scenario.hasOwnProperty('removeSelectors')) {
       const removeSelectors = async () => {
         return Promise.all(
           scenario.removeSelectors.map(async (selector) => {
             await page
-              .evaluate(`window._backstopSelector = '${selector}'`);
-
-            await page
-              .evaluate(() => {
-                document.querySelectorAll(window._backstopSelector).forEach(s => {
+              .evaluate((sel) => {
+                document.querySelectorAll(sel).forEach(s => {
                   s.style.display = 'none';
                   s.classList.add('__86d');
                 });
-              });
+              }, selector);
           })
         );
-      }
+      };
 
       await removeSelectors();
     }
@@ -186,14 +179,11 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
         return Promise.all(
           scenario.hideSelectors.map(async (selector) => {
             await page
-              .evaluate(`window._backstopSelector = '${selector}'`)
-
-            await page
-              .evaluate(() => {
-                document.querySelectorAll(window._backstopSelector).forEach(s => {
+              .evaluate((sel) => {
+                document.querySelectorAll(sel).forEach(s => {
                   s.style.visibility = 'hidden';
                 });
-              });
+              }, selector);
           })
         );
       };
@@ -284,7 +274,6 @@ async function delegateSelectors (
   selectors,
   selectorMap
 ) {
-
   let compareConfig = {testPairs: []};
   let captureDocument = false;
   let captureViewport = false;
@@ -294,8 +283,6 @@ async function delegateSelectors (
   selectors.forEach(function (selector, selectorIndex) {
     const testPair = engineTools.generateTestPair(config, scenario, viewport, variantOrScenarioLabelSafe, scenarioLabelSafe, selectorIndex, selector);
     const filePath = config.isReference ? testPair.reference : testPair.test;
-
-console.log('TESTPAIR>>>', testPair, filePath);
 
     if (!config.isReference) {
       compareConfig.testPairs.push(testPair);
@@ -401,8 +388,8 @@ async function captureScreenshot (page, browser, selector, selectorMap, config, 
           }
         })
       );
-    }
-    await selectorsShot()
+    };
+    await selectorsShot();
   }
 }
 
