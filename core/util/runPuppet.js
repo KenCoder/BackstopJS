@@ -66,6 +66,8 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
   const page = await browser.newPage();
   const logId = nextLogId++;
 
+  const getLogPrefix = () => `[${new Date().toLocaleTimeString()}] ${logId}`
+
   page.setViewport({width: VP_W, height: VP_H});
   page.setDefaultNavigationTimeout(engineTools.getEngineOption(config, 'waitTimeout', TEST_TIMEOUT));
 
@@ -86,7 +88,7 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
   page.on('console', msg => {
     for (let i = 0; i < msg.args().length; ++i) {
       const line = msg.args()[i];
-      console.log(`${logId}: ${line}`);
+      console.log(`${getLogPrefix()}: ${line}`);
       if (readyEvent && new RegExp(readyEvent).test(line)) {
         readyResolve();
       }
@@ -120,7 +122,7 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
     if (isReference && scenario.referenceUrl) {
       url = scenario.referenceUrl;
     }
-    console.log(`${logId}: Navigating to ${url}`);
+    console.log(`${getLogPrefix()}: Navigating to ${url}`);
 
     await page.goto(translateUrl(url));
 
@@ -129,7 +131,7 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
     //  --- WAIT FOR READY EVENT ---
     if (readyEvent) {
       await page.evaluate(`window._readyEvent = '${readyEvent}'`);
-      const timeout = config.readyTimeout || 30000;
+      const timeout = scenario.readyTimeout || config.readyTimeout || 30000;
       const timerId = setTimeout(() => readyReject(new Error(`Timeout waiting for readyEvent '${readyEvent} in ${url}`)), timeout)
 
       await readyPromise;
@@ -149,7 +151,7 @@ async function processScenarioView (scenario, variantOrScenarioLabelSafe, scenar
     if (scenario.delay > 0) {
       await page.waitFor(scenario.delay);
     }
-    console.log(`${logId}: Navigation complete`);
+    console.log(`${getLogPrefix()}: Navigation complete`);
 
     // --- REMOVE SELECTORS ---
     if (scenario.hasOwnProperty('removeSelectors')) {
